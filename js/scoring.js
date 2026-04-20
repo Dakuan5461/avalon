@@ -14,6 +14,13 @@ export function addScores(counts, scoreKeys) {
   }
 }
 
+/** 撤销上一题选择对应的维度分（用于「上一步」） */
+export function subtractScores(counts, scoreKeys) {
+  for (const k of scoreKeys) {
+    if (counts[k] !== undefined) counts[k] -= 1;
+  }
+}
+
 function roleWeightedScore(counts, weights) {
   let s = 0;
   for (const d of DIMENSIONS) {

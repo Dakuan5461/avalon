@@ -234,6 +234,23 @@ body {
   margin-right: 8px;
 }
 
+.btn-back {
+  margin-top: 20px;
+  max-width: none;
+  padding: 12px 16px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px dashed rgba(201, 162, 39, 0.35);
+}
+
+.btn-back:hover {
+  color: var(--silver);
+  border-color: rgba(201, 162, 39, 0.55);
+  background: var(--mist);
+}
+
 /* 结果 */
 .result-card {
   background: var(--bg-card);
@@ -243,14 +260,24 @@ body {
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
 }
 
-.result-badge {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 16px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: linear-gradient(145deg, rgba(201, 162, 39, 0.2), rgba(18, 28, 48, 0.9));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+.result-portrait-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 18px;
+}
+
+.result-portrait {
+  display: block;
+  width: min(168px, 42vw);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 2px solid var(--border);
+  background: rgba(18, 28, 48, 0.6);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .result-title {

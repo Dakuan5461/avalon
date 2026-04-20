@@ -28,6 +28,8 @@ export const TIE_BREAK_ORDER = [
 export const ROLES = [
   {
     id: "merlin",
+    /** 与 pictures/ 下文件名对应（中文全拼小写） */
+    portraitFile: "meilin.png",
     name: "梅林",
     weights: {
       Logic: 3,
@@ -60,6 +62,7 @@ export const ROLES = [
   },
   {
     id: "percival",
+    portraitFile: "paixiweier.png",
     name: "派西维尔",
     weights: {
       Intuition: 3,
@@ -92,6 +95,7 @@ export const ROLES = [
   },
   {
     id: "loyal",
+    portraitFile: "zhongchen.png",
     name: "忠臣",
     weights: {
       Logic: 2,
@@ -119,6 +123,7 @@ export const ROLES = [
   },
   {
     id: "arthur",
+    portraitFile: "yase.png",
     name: "亚瑟",
     weights: {
       Lead: 3,
@@ -151,6 +156,7 @@ export const ROLES = [
   },
   {
     id: "morgana",
+    portraitFile: "moganna.png",
     name: "莫甘娜",
     weights: {
       Hidden: 3,
@@ -178,6 +184,7 @@ export const ROLES = [
   },
   {
     id: "assassin",
+    portraitFile: "cike.png",
     name: "刺客",
     weights: {
       Active: 3,
@@ -205,6 +212,7 @@ export const ROLES = [
   },
   {
     id: "mordred",
+    portraitFile: "modeleide.png",
     name: "莫德雷德",
     weights: {
       Hidden: 3,
@@ -232,6 +240,7 @@ export const ROLES = [
   },
   {
     id: "oberon",
+    portraitFile: "aobolun.png",
     name: "奥伯伦",
     weights: {
       Intuition: 3,

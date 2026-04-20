@@ -2,6 +2,7 @@ import { QUESTIONS } from "./questions.js";
 import {
   emptyCounts,
   addScores,
+  subtractScores,
   matchRoles,
   entertainmentMatchPercent,
 } from "./scoring.js";
@@ -29,11 +30,14 @@ const el = {
   resultPros: document.getElementById("result-pros"),
   resultCons: document.getElementById("result-cons"),
   resultShare: document.getElementById("result-share"),
+  resultPortrait: document.getElementById("result-portrait"),
   posterCanvas: document.getElementById("poster-canvas"),
 };
 
 let counts = emptyCounts();
 let questionIndex = 0;
+/** 已作答题目的选项维度，长度等于当前题号（上一题及之前） */
+let answerTrail = [];
 let lastMatch = null;
 
 function showScreen(name) {
@@ -68,12 +72,27 @@ function renderQuestion() {
 
 function onOption(scoreKeys) {
   addScores(counts, scoreKeys);
+  answerTrail.push(scoreKeys);
   questionIndex += 1;
   if (questionIndex >= QUESTIONS.length) {
     finishQuiz();
   } else {
     renderQuestion();
   }
+}
+
+function goQuizBack() {
+  if (questionIndex === 0) {
+    resetQuiz();
+    showScreen("home");
+    window.scrollTo(0, 0);
+    return;
+  }
+  const last = answerTrail.pop();
+  if (last) subtractScores(counts, last);
+  questionIndex -= 1;
+  renderQuestion();
+  window.scrollTo(0, 0);
 }
 
 function finishQuiz() {
@@ -103,6 +122,11 @@ function finishQuiz() {
   fillList(el.resultCons, primary.cons);
   el.resultShare.textContent = primary.shareShort;
 
+  if (el.resultPortrait) {
+    el.resultPortrait.src = `./pictures/${primary.portraitFile}`;
+    el.resultPortrait.alt = `${primary.name}角色形象`;
+  }
+
   showScreen("result");
   window.scrollTo(0, 0);
 }
@@ -119,6 +143,7 @@ function fillList(ul, items) {
 function resetQuiz() {
   counts = emptyCounts();
   questionIndex = 0;
+  answerTrail = [];
   lastMatch = null;
 }
 
@@ -136,9 +161,11 @@ document.getElementById("btn-retry")?.addEventListener("click", () => {
   window.scrollTo(0, 0);
 });
 
-document.getElementById("btn-poster")?.addEventListener("click", () => {
+document.getElementById("btn-quiz-back")?.addEventListener("click", goQuizBack);
+
+document.getElementById("btn-poster")?.addEventListener("click", async () => {
   if (!lastMatch || !el.posterCanvas) return;
-  drawPoster(el.posterCanvas, lastMatch.primary);
+  await drawPoster(el.posterCanvas, lastMatch.primary);
   showScreen("poster");
   window.scrollTo(0, 0);
 });

@@ -34,12 +34,15 @@
         </div>
         <h2 class="question" id="quiz-question"></h2>
         <div class="options" id="quiz-options"></div>
+        <button type="button" class="btn btn-back" id="btn-quiz-back">上一步</button>
       </section>
 
       <!-- 结果 -->
       <section id="screen-result" class="screen" aria-label="测试结果" hidden>
         <div class="result-card">
-          <div class="result-badge" id="result-badge" aria-hidden="true"></div>
+          <div class="result-portrait-wrap">
+            <img id="result-portrait" class="result-portrait" src="" alt="" width="160" height="160" loading="lazy" />
+          </div>
           <h2 class="result-title" id="result-title"></h2>
           <p class="result-subtitle" id="result-subtitle"></p>
           <div class="tags" id="result-tags"></div>

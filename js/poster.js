@@ -1,13 +1,45 @@
 /**
  * 使用 Canvas 绘制微信传播向分享图（750×1200）
+ * 异步加载角色立绘（./pictures/ 下与 portraitFile 对应）
  */
-export function drawPoster(canvas, role) {
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("image load failed"));
+    img.src = src;
+  });
+}
+
+/** 圆形裁剪 + cover 铺满 */
+function drawPortraitCircle(ctx, img, cx, cy, diameter) {
+  const r = diameter / 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  const scale = Math.max(diameter / iw, diameter / ih);
+  const dw = iw * scale;
+  const dh = ih * scale;
+  ctx.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(201, 162, 39, 0.55)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
+export async function drawPoster(canvas, role) {
   const w = canvas.width;
   const h = canvas.height;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  // 背景
   const g = ctx.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, "#1a2744");
   g.addColorStop(0.45, "#0f1629");
@@ -15,56 +47,59 @@ export function drawPoster(canvas, role) {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
 
-  // 装饰圆环
-  ctx.save();
-  ctx.strokeStyle = "rgba(201, 162, 39, 0.25)";
+  ctx.strokeStyle = "rgba(201, 162, 39, 0.22)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(w / 2, 180, 120, 0, Math.PI * 2);
+  ctx.arc(w / 2, 195, 118, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.restore();
 
-  // 徽章方块
-  ctx.fillStyle = "rgba(201, 162, 39, 0.15)";
-  ctx.strokeStyle = "rgba(201, 162, 39, 0.5)";
-  ctx.lineWidth = 2;
-  const bx = w / 2 - 48;
-  ctx.fillRect(bx, 100, 96, 96);
-  ctx.strokeRect(bx, 100, 96, 96);
+  const cx = w / 2;
+  const cy = 200;
+  const portraitPath = `./pictures/${role.portraitFile}`;
 
-  ctx.fillStyle = "#c9a227";
-  ctx.font = "bold 42px sans-serif";
+  try {
+    const img = await loadImage(portraitPath);
+    drawPortraitCircle(ctx, img, cx, cy, 176);
+  } catch {
+    ctx.fillStyle = "rgba(201, 162, 39, 0.15)";
+    ctx.strokeStyle = "rgba(201, 162, 39, 0.5)";
+    ctx.lineWidth = 2;
+    const bx = cx - 48;
+    ctx.fillRect(bx, cy - 48, 96, 96);
+    ctx.strokeRect(bx, cy - 48, 96, 96);
+    ctx.fillStyle = "#c9a227";
+    ctx.font = "bold 42px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("⚜", cx, cy);
+  }
+
   ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("⚜", w / 2, 148);
+  ctx.textBaseline = "alphabetic";
 
-  // 主标题
   ctx.fillStyle = "#e8eaf0";
   ctx.font = "28px 'Microsoft YaHei', 'PingFang SC', sans-serif";
-  ctx.fillText("我的阿瓦隆人格角色是", w / 2, 260);
+  ctx.fillText("我的阿瓦隆人格角色是", w / 2, 330);
 
   ctx.fillStyle = "#c9a227";
   ctx.font = "bold 52px 'Microsoft YaHei', 'PingFang SC', sans-serif";
-  ctx.fillText(role.name, w / 2, 340);
+  ctx.fillText(role.name, w / 2, 400);
 
-  // 副标题（一句话）
   ctx.fillStyle = "#b8bcc8";
   ctx.font = "26px 'Microsoft YaHei', 'PingFang SC', sans-serif";
   const sub = role.subtitle.replace(/。$/, "");
-  wrapText(ctx, sub, w / 2, 420, w - 100, 36);
+  wrapText(ctx, sub, w / 2, 450, w - 100, 36);
 
-  // 关键词（取前 3 个）
   const kw = role.keywords.slice(0, 3);
   ctx.textAlign = "left";
   const startX = 80;
-  let ky = 520;
+  let ky = 560;
   ctx.fillStyle = "rgba(201, 162, 39, 0.9)";
   ctx.font = "22px 'Microsoft YaHei', 'PingFang SC', sans-serif";
   kw.forEach((k, i) => {
     ctx.fillText(`· ${k}`, startX, ky + i * 40);
   });
 
-  // 底部
   ctx.textAlign = "center";
   ctx.fillStyle = "rgba(154, 163, 181, 0.85)";
   ctx.font = "22px 'Microsoft YaHei', 'PingFang SC', sans-serif";
@@ -74,7 +109,6 @@ export function drawPoster(canvas, role) {
   ctx.font = "18px sans-serif";
   ctx.fillText("阿瓦隆角色人格测试", w / 2, h - 60);
 
-  // 二维码占位框（无真实链接时作入口位）
   const qw = 140;
   const qx = w / 2 - qw / 2;
   const qy = h - 220;
@@ -89,6 +123,7 @@ export function drawPoster(canvas, role) {
 }
 
 function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  ctx.textAlign = "center";
   const chars = text.split("");
   let line = "";
   let cy = y;
