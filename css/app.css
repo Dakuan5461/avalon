@@ -689,19 +689,6 @@ body {
   margin-bottom: 6px;
 }
 
-.result-panel--share .share-text {
-  margin: 0;
-  font-size: 0.92rem;
-  color: var(--silver);
-  padding: 14px 16px;
-  background: rgba(0, 0, 0, 0.22);
-  border-radius: var(--radius);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-left: 3px solid var(--wine-light);
-  white-space: pre-line;
-  line-height: 1.55;
-}
-
 .result-panel--share .actions {
   margin-top: 1.1rem;
 }

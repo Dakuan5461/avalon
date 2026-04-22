@@ -39,7 +39,6 @@ const el = {
   resultBody: document.getElementById("result-body"),
   resultPros: document.getElementById("result-pros"),
   resultCons: document.getElementById("result-cons"),
-  resultShare: document.getElementById("result-share"),
   resultPortrait: document.getElementById("result-portrait"),
   resultAxes: document.getElementById("result-axes"),
   sharePosterCanvas: document.getElementById("share-poster-canvas"),
@@ -51,6 +50,8 @@ let questionIndex = 0;
 /** 已作答题目的选项维度，长度等于当前题号（上一题及之前） */
 let answerTrail = [];
 let lastMatch = null;
+/** 结果页「复制文案」的完整内容（不展示在页面上） */
+let lastCopyShareText = "";
 let lastAtlasFrom = "home";
 let toastTimer = 0;
 
@@ -212,21 +213,25 @@ function renderAxisList(axes) {
   if (!el.resultAxes) return;
   el.resultAxes.innerHTML = "";
   axes.forEach((axis) => {
-    const lean =
-      axis.value === 50
-        ? "居中"
-        : axis.value > 50
-          ? `偏${axis.rightLabel}`
-          : `偏${axis.leftLabel}`;
+    const v = axis.value;
+    let meta;
+    if (v === 50) {
+      meta = "居中";
+    } else if (v > 50) {
+      meta = `${v}% 偏${axis.rightLabel}`;
+    } else {
+      const leftDominance = 100 - v;
+      meta = `${leftDominance}% 偏${axis.leftLabel}`;
+    }
     const row = document.createElement("div");
     row.className = "axis";
     row.innerHTML = `
       <div class="axis__labels"><span>${axis.leftLabel}</span><span>${axis.rightLabel}</span></div>
       <div class="axis__track" role="presentation">
-        <span class="axis__fill" style="width:${axis.value}%"></span>
-        <span class="axis__tick" style="left:${axis.value}%"></span>
+        <span class="axis__fill" style="width:${v}%"></span>
+        <span class="axis__tick" style="left:${v}%"></span>
       </div>
-      <p class="axis__meta">${axis.value}% ${lean}</p>
+      <p class="axis__meta">${meta}</p>
     `;
     el.resultAxes.appendChild(row);
   });
@@ -272,7 +277,7 @@ async function finishQuiz() {
   el.resultBody.textContent = primary.body;
   fillList(el.resultPros, primary.pros);
   fillList(el.resultCons, primary.cons);
-  el.resultShare.textContent = buildFullShareText(primary);
+  lastCopyShareText = buildFullShareText(primary);
   renderAxisList(profileAxesFromCounts(counts));
 
   if (el.resultPortrait) {
@@ -304,6 +309,7 @@ function resetQuiz() {
   questionIndex = 0;
   answerTrail = [];
   lastMatch = null;
+  lastCopyShareText = "";
 }
 
 document.getElementById("link-home")?.addEventListener("click", () => {
@@ -342,24 +348,8 @@ document.getElementById("btn-retry")?.addEventListener("click", () => {
 
 document.getElementById("btn-quiz-back")?.addEventListener("click", goQuizBack);
 
-function getSharePayload() {
-  const p = lastMatch?.primary;
-  if (!p) {
-    return {
-      title: "阿瓦隆人格测试",
-      text: `来测一测：${TEST_SITE_URL}`,
-      url: TEST_SITE_URL,
-    };
-  }
-  return {
-    title: `我的阿瓦隆人格：${p.name}`,
-    text: buildFullShareText(p),
-    url: TEST_SITE_URL,
-  };
-}
-
 document.getElementById("btn-copy-share")?.addEventListener("click", () => {
-  const t = el.resultShare?.textContent?.trim() ?? "";
+  const t = lastCopyShareText.trim();
   if (!t) return;
   if (tryExecCommandCopy(t)) {
     showToast("已复制到剪贴板");
@@ -372,60 +362,11 @@ document.getElementById("btn-copy-share")?.addEventListener("click", () => {
         showToast("已复制到剪贴板");
       })
       .catch(() => {
-        showToast("无法自动复制，请长按上方灰色文案框，在系统菜单中点「复制」");
+        showToast("无法自动复制，可改用「下载图片」或截图分享");
       });
     return;
   }
-  showToast("请长按上方灰色文案框，在系统菜单中点「复制」");
-});
-
-document.getElementById("btn-native-share")?.addEventListener("click", async () => {
-  const p = lastMatch?.primary;
-  if (!p) return;
-  const { title, text, url } = getSharePayload();
-
-  if (navigator.share) {
-    try {
-      await navigator.share({ title, text, url });
-      return;
-    } catch (e) {
-      if (e && e.name === "AbortError") return;
-    }
-  }
-
-  const canvas = el.sharePosterCanvas;
-  if (navigator.share && canvas && typeof canvas.toBlob === "function") {
-    const blob = await new Promise((resolve) => {
-      canvas.toBlob((b) => resolve(b), "image/png", 1.0);
-    });
-    if (blob) {
-      const safeName = String(p.name).replace(/[\\/:*?"<>|]/g, "_");
-      const file = new File([blob], `阿瓦隆人格-${safeName}.png`, { type: "image/png" });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ title, text, url, files: [file] });
-          return;
-        } catch (e) {
-          if (e && e.name === "AbortError") return;
-        }
-      }
-    }
-  }
-
-  if (tryExecCommandCopy(text)) {
-    showToast("系统分享不可用，已复制到剪贴板");
-    return;
-  }
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-      showToast("系统分享不可用，已复制到剪贴板");
-      return;
-    }
-  } catch {
-    /* 继续 */
-  }
-  showToast("无法调起分享。请点「复制文案」或截图分享");
+  showToast("无法完成自动复制。请用「下载图片」分享海报，或长截图本页。");
 });
 
 function downloadSharePng() {
