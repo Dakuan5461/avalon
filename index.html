@@ -3,13 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f1629" />
+    <meta name="theme-color" content="#1a0a0c" />
     <meta name="description" content="12道题，测出你的阿瓦隆角色人格" />
     <title>阿瓦隆角色人格测试</title>
     <link rel="stylesheet" href="./css/app.css" />
   </head>
   <body>
-    <div id="app" class="app">
+    <header class="app-header">
+      <div class="app-header__inner">
+        <button type="button" class="app-brand" id="link-home" aria-label="回到首页">阿瓦隆人格</button>
+        <nav class="app-nav" aria-label="站点导航">
+          <button type="button" class="app-nav__btn" id="btn-atlas">角色一览</button>
+          <button type="button" class="app-nav__btn app-nav__btn--quit" id="btn-quit" hidden>退出</button>
+        </nav>
+      </div>
+    </header>
+    <div id="app" class="app" data-screen="home">
       <!-- 首页 -->
       <section id="screen-home" class="screen screen--active" aria-label="首页">
         <div class="hero-badge" aria-hidden="true"></div>
@@ -25,63 +34,100 @@
       </section>
 
       <!-- 答题 -->
-      <section id="screen-quiz" class="screen" aria-label="答题" hidden>
-        <div class="quiz-top">
-          <span class="progress" id="quiz-progress" aria-live="polite">1 / 12</span>
-          <div class="progress-bar" role="progressbar" aria-valuemin="1" aria-valuemax="12" aria-valuenow="1" id="quiz-progressbar">
-            <span class="progress-bar__fill" id="quiz-progress-fill"></span>
+      <section id="screen-quiz" class="screen screen--quiz" aria-label="答题" hidden>
+        <div class="quiz-main">
+          <div class="quiz-top">
+            <div class="progress-row">
+              <span class="progress-label" id="quiz-progress-label">PROGRESS 1/12</span>
+              <span class="progress-pct" id="quiz-progress-pct" aria-hidden="true">8%</span>
+            </div>
+            <div
+              class="progress-bar"
+              id="quiz-progressbar"
+              role="progressbar"
+              aria-valuemin="1"
+              aria-valuemax="12"
+              aria-valuenow="1"
+              aria-label="测试进度"
+            >
+              <span class="progress-bar__fill" id="quiz-progress-fill"></span>
+            </div>
           </div>
+          <h2 class="question" id="quiz-question"></h2>
+          <div class="options" id="quiz-options"></div>
         </div>
-        <h2 class="question" id="quiz-question"></h2>
-        <div class="options" id="quiz-options"></div>
-        <button type="button" class="btn btn-back" id="btn-quiz-back">上一步</button>
+        <div class="quiz-bottom">
+          <button type="button" class="btn btn-back" id="btn-quiz-back">上一步</button>
+        </div>
       </section>
 
-      <!-- 结果 -->
+      <!-- 角色一览（全屏列表） -->
+      <section id="screen-atlas" class="screen" aria-label="角色一览" hidden>
+        <h2 class="atlas-title">角色一览</h2>
+        <p class="atlas-lead">八种策略气质原型，仅供风格参考。</p>
+        <ul class="atlas-list" id="atlas-list"></ul>
+        <div class="actions">
+          <button type="button" class="btn btn-ghost" id="btn-atlas-back">返回</button>
+        </div>
+      </section>
+
+      <!-- 结果：三块独立白框区 -->
       <section id="screen-result" class="screen" aria-label="测试结果" hidden>
-        <div class="result-card">
-          <div class="result-portrait-wrap">
-            <img id="result-portrait" class="result-portrait" src="" alt="" width="160" height="160" loading="lazy" />
-          </div>
-          <h2 class="result-title" id="result-title"></h2>
-          <p class="result-subtitle" id="result-subtitle"></p>
-          <div class="tags" id="result-tags"></div>
-          <p class="similarity" id="result-similarity"></p>
-          <p class="secondary-role" id="result-secondary"></p>
-          <section class="block">
-            <h3 class="block-title">结果解读</h3>
-            <p class="block-text" id="result-body"></p>
-          </section>
-          <section class="block">
-            <h3 class="block-title">你的优势</h3>
-            <ul class="bullet-list" id="result-pros"></ul>
-          </section>
-          <section class="block">
-            <h3 class="block-title">你的盲区</h3>
-            <ul class="bullet-list" id="result-cons"></ul>
-          </section>
-          <section class="block block--share">
-            <h3 class="block-title">分享短文案</h3>
+        <div class="result-stack">
+          <article class="result-panel result-panel--hero" aria-label="结果人格">
+            <div class="result-portrait-wrap">
+              <img id="result-portrait" class="result-portrait" src="" alt="" width="240" height="240" loading="lazy" />
+            </div>
+            <h2 class="result-title" id="result-title"></h2>
+            <p class="result-subtitle result-quote" id="result-subtitle"></p>
+            <div class="tags" id="result-tags"></div>
+            <p class="similarity" id="result-similarity"></p>
+            <p class="secondary-role" id="result-secondary"></p>
+            <section class="block">
+              <h3 class="block-title">结果解读</h3>
+              <p class="block-text" id="result-body"></p>
+            </section>
+            <section class="block">
+              <h3 class="block-title">你的优势</h3>
+              <ul class="bullet-list" id="result-pros"></ul>
+            </section>
+            <section class="block block--last">
+              <h3 class="block-title">你的盲区</h3>
+              <ul class="bullet-list" id="result-cons"></ul>
+            </section>
+          </article>
+
+          <article class="result-panel result-panel--axes" aria-label="风格维度">
+            <h3 class="result-panel__heading">风格维度</h3>
+            <p class="result-panel__lead">由答题倾向推估的四组对照得分。</p>
+            <div class="axis-list" id="result-axes"></div>
+          </article>
+
+          <article class="result-panel result-panel--share" aria-label="分享">
+            <h3 class="result-panel__heading">分享卡片</h3>
             <p class="share-text" id="result-share"></p>
-          </section>
+            <div class="share-poster-wrap">
+              <canvas
+                id="share-poster-canvas"
+                width="750"
+                height="1000"
+                class="share-poster-canvas"
+                aria-label="可保存的分享图预览"
+              ></canvas>
+            </div>
+            <div class="actions actions--result">
+              <div class="actions-row">
+                <button type="button" class="btn btn-ghost" id="btn-copy-share">复制文案</button>
+                <button type="button" class="btn btn-ghost" id="btn-native-share">分享</button>
+              </div>
+              <button type="button" class="btn btn-primary" id="btn-download-share">下载图片</button>
+              <button type="button" class="btn btn-ghost" id="btn-retry">重新测试</button>
+            </div>
+          </article>
         </div>
-        <div class="actions">
-          <button type="button" class="btn btn-primary" id="btn-poster">生成分享图</button>
-          <button type="button" class="btn btn-ghost" id="btn-retry">重新测试</button>
-        </div>
+        <p class="toast" id="app-toast" role="status" aria-live="polite" hidden></p>
       </section>
 
-      <!-- 分享海报 -->
-      <section id="screen-poster" class="screen screen--poster" aria-label="分享海报" hidden>
-        <p class="poster-hint">长按图片保存，或点击下方按钮下载</p>
-        <div class="poster-wrap">
-          <canvas id="poster-canvas" width="750" height="1200" aria-label="分享海报预览"></canvas>
-        </div>
-        <div class="actions">
-          <button type="button" class="btn btn-primary" id="btn-download">下载图片</button>
-          <button type="button" class="btn btn-ghost" id="btn-back-result">返回结果</button>
-        </div>
-      </section>
     </div>
     <script type="module" src="./js/main.js"></script>
   </body>

@@ -1,7 +1,8 @@
 /**
- * 使用 Canvas 绘制微信传播向分享图（750×1200）
- * 异步加载角色立绘（./pictures/ 下与 portraitFile 对应）
+ * 分享图 Canvas：上半 — 立绘/名称/短文案/接近度；下半 — 网址 + 二维码
  */
+
+const QR_PATH = "./pictures/QRcode.png";
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {
@@ -12,7 +13,6 @@ function loadImage(src) {
   });
 }
 
-/** 圆形裁剪 + cover 铺满 */
 function drawPortraitCircle(ctx, img, cx, cy, diameter) {
   const r = diameter / 2;
   ctx.save();
@@ -29,114 +29,184 @@ function drawPortraitCircle(ctx, img, cx, cy, diameter) {
 
   ctx.beginPath();
   ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
-  ctx.strokeStyle = "rgba(201, 162, 39, 0.55)";
+  ctx.strokeStyle = "rgba(200, 140, 90, 0.6)";
   ctx.lineWidth = 3;
   ctx.stroke();
 }
 
-export async function drawPoster(canvas, role) {
+/** 居中多行，最多 maxLines 行；未写完则末行以 … 收束。 */
+function drawWrappedLines(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+  ctx.textAlign = "center";
+  if (!text || maxLines < 1) return y;
+  const chars = text.split("");
+  const lines = [];
+  let i = 0;
+  while (i < chars.length && lines.length < maxLines) {
+    let line = "";
+    while (i < chars.length) {
+      const t = line + chars[i];
+      if (ctx.measureText(t).width > maxWidth && line) break;
+      line = t;
+      i += 1;
+    }
+    lines.push(line);
+  }
+  if (i < chars.length && lines.length) {
+    let last = lines[lines.length - 1];
+    while (last.length > 0 && ctx.measureText(last + "…").width > maxWidth) {
+      last = last.slice(0, -1);
+    }
+    lines[lines.length - 1] = last + "…";
+  }
+  let cy = y;
+  for (const ln of lines) {
+    if (ln) {
+      ctx.fillText(ln, x, cy);
+      cy += lineHeight;
+    }
+  }
+  return cy;
+}
+
+/**
+ * @param {object} extra
+ * @param {number} extra.matchPercent
+ */
+export async function drawPoster(canvas, role, extra = {}) {
+  const matchPercent = extra.matchPercent ?? 0;
   const w = canvas.width;
   const h = canvas.height;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
+  const halfY = h * 0.5;
   const g = ctx.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, "#1a2744");
-  g.addColorStop(0.45, "#0f1629");
-  g.addColorStop(1, "#0a0f1a");
+  g.addColorStop(0, "#1e1216");
+  g.addColorStop(0.4, "#120a0c");
+  g.addColorStop(1, "#080508");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
 
-  ctx.strokeStyle = "rgba(201, 162, 39, 0.22)";
-  ctx.lineWidth = 2;
+  /* 下半区略深 */
+  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+  ctx.fillRect(0, halfY, w, h - halfY);
+
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.arc(w / 2, 195, 118, 0, Math.PI * 2);
+  ctx.moveTo(0, halfY);
+  ctx.lineTo(w, halfY);
   ctx.stroke();
 
-  const cx = w / 2;
-  const cy = 200;
-  const portraitPath = `./pictures/${role.portraitFile}`;
-
-  try {
-    const img = await loadImage(portraitPath);
-    drawPortraitCircle(ctx, img, cx, cy, 176);
-  } catch {
-    ctx.fillStyle = "rgba(201, 162, 39, 0.15)";
-    ctx.strokeStyle = "rgba(201, 162, 39, 0.5)";
-    ctx.lineWidth = 2;
-    const bx = cx - 48;
-    ctx.fillRect(bx, cy - 48, 96, 96);
-    ctx.strokeRect(bx, cy - 48, 96, 96);
-    ctx.fillStyle = "#c9a227";
-    ctx.font = "bold 42px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("⚜", cx, cy);
-  }
-
+  /* ——— 上半：人格信息（严格压在 halfY 之上留边距） ——— */
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
 
-  ctx.fillStyle = "#e8eaf0";
-  ctx.font = "28px 'Microsoft YaHei', 'PingFang SC', sans-serif";
-  ctx.fillText("我的阿瓦隆人格角色是", w / 2, 330);
-
-  ctx.fillStyle = "#c9a227";
-  ctx.font = "bold 52px 'Microsoft YaHei', 'PingFang SC', sans-serif";
-  ctx.fillText(role.name, w / 2, 400);
-
-  ctx.fillStyle = "#b8bcc8";
-  ctx.font = "26px 'Microsoft YaHei', 'PingFang SC', sans-serif";
-  const sub = role.subtitle.replace(/。$/, "");
-  wrapText(ctx, sub, w / 2, 450, w - 100, 36);
-
-  const kw = role.keywords.slice(0, 3);
-  ctx.textAlign = "left";
-  const startX = 80;
-  let ky = 560;
-  ctx.fillStyle = "rgba(201, 162, 39, 0.9)";
+  ctx.fillStyle = "rgba(200, 180, 160, 0.75)";
   ctx.font = "22px 'Microsoft YaHei', 'PingFang SC', sans-serif";
-  kw.forEach((k, i) => {
-    ctx.fillText(`· ${k}`, startX, ky + i * 40);
-  });
+  ctx.fillText("我的阿瓦隆人格", w / 2, 46);
 
-  ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(154, 163, 181, 0.85)";
-  ctx.font = "22px 'Microsoft YaHei', 'PingFang SC', sans-serif";
-  ctx.fillText("12 道题，测测你在阿瓦隆里最像谁", w / 2, h - 100);
+  const cx = w / 2;
+  const cy = 150;
+  const diam = 142;
+  const portraitPath = `./pictures/${role.portraitFile}`;
 
-  ctx.fillStyle = "rgba(255,255,255,0.35)";
-  ctx.font = "18px sans-serif";
-  ctx.fillText("阿瓦隆角色人格测试", w / 2, h - 60);
-
-  const qw = 140;
-  const qx = w / 2 - qw / 2;
-  const qy = h - 220;
-  ctx.strokeStyle = "rgba(201, 162, 39, 0.4)";
-  ctx.setLineDash([6, 4]);
-  ctx.strokeRect(qx, qy, qw, qw);
-  ctx.setLineDash([]);
-  ctx.fillStyle = "rgba(154, 163, 181, 0.7)";
-  ctx.font = "16px 'Microsoft YaHei', sans-serif";
-  ctx.fillText("入口", w / 2, qy + qw / 2 - 8);
-  ctx.fillText("二维码", w / 2, qy + qw / 2 + 14);
-}
-
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-  ctx.textAlign = "center";
-  const chars = text.split("");
-  let line = "";
-  let cy = y;
-  for (let i = 0; i < chars.length; i++) {
-    const test = line + chars[i];
-    const m = ctx.measureText(test);
-    if (m.width > maxWidth && line.length > 0) {
-      ctx.fillText(line, x, cy);
-      line = chars[i];
-      cy += lineHeight;
-    } else {
-      line = test;
-    }
+  try {
+    const pImg = await loadImage(portraitPath);
+    drawPortraitCircle(ctx, pImg, cx, cy, diam);
+  } catch {
+    ctx.fillStyle = "rgba(120, 40, 50, 0.25)";
+    ctx.strokeStyle = "rgba(200, 90, 100, 0.45)";
+    ctx.lineWidth = 2;
+    const s = 72;
+    ctx.fillRect(cx - s / 2, cy - s / 2, s, s);
+    ctx.strokeRect(cx - s / 2, cy - s / 2, s, s);
+    ctx.fillStyle = "#c9a85c";
+    ctx.font = "bold 40px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("⚜", cx, cy);
+    ctx.textBaseline = "alphabetic";
   }
-  if (line) ctx.fillText(line, x, cy);
+
+  ctx.textAlign = "center";
+
+  ctx.fillStyle = "#d4b86a";
+  ctx.font = "bold 44px 'Microsoft YaHei', 'PingFang SC', sans-serif";
+  ctx.fillText(role.name, w / 2, 256);
+
+  ctx.fillStyle = "#a8a0a8";
+  ctx.font = "21px 'Microsoft YaHei', 'PingFang SC', sans-serif";
+  const sub = (role.subtitle || "").replace(/。$/, "");
+  let afterSub = drawWrappedLines(ctx, sub, w / 2, 288, w - 72, 28, 2);
+
+  const matchY = Math.max(afterSub + 18, 352);
+  ctx.fillStyle = "rgba(200, 160, 100, 0.95)";
+  ctx.font = "20px 'Microsoft YaHei', 'PingFang SC', sans-serif";
+  ctx.fillText(`气质接近度 ${matchPercent}%`, w / 2, matchY);
+
+  const blurbStart = matchY + 32;
+  const blurb = (role.shareShort || "").trim().split("\n").join("");
+  ctx.fillStyle = "#9aa0a8";
+  ctx.font = "19px 'Microsoft YaHei', 'PingFang SC', sans-serif";
+  if (blurb) {
+    drawWrappedLines(ctx, blurb, w / 2, blurbStart, w - 64, 30, 2);
+  }
+
+  /* ——— 下半：网址 + 二维码 ——— */
+  let yb = halfY + 32;
+
+  ctx.fillStyle = "rgba(200, 180, 160, 0.5)";
+  ctx.font = "18px 'Microsoft YaHei', 'PingFang SC', sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("访问测试", w / 2, yb);
+  yb += 36;
+
+  ctx.fillStyle = "#d4b86a";
+  ctx.font = "28px 'Microsoft YaHei', 'PingFang SC', sans-serif";
+  ctx.fillText("avalontest.cn", w / 2, yb);
+  yb += 32;
+
+  const qrSize = Math.min(160, (h - halfY) * 0.38);
+  const qrX = w / 2 - qrSize / 2;
+  const qrY = yb;
+
+  try {
+    const qr = await loadImage(QR_PATH);
+    ctx.save();
+    ctx.fillStyle = "#fff";
+    const pad = 6;
+    ctx.beginPath();
+    const rb = 10;
+    const qx0 = qrX - pad;
+    const qy0 = qrY - pad;
+    const qw = qrSize + pad * 2;
+    const qh = qrSize + pad * 2;
+    ctx.moveTo(qx0 + rb, qy0);
+    ctx.lineTo(qx0 + qw - rb, qy0);
+    ctx.quadraticCurveTo(qx0 + qw, qy0, qx0 + qw, qy0 + rb);
+    ctx.lineTo(qx0 + qw, qy0 + qh - rb);
+    ctx.quadraticCurveTo(qx0 + qw, qy0 + qh, qx0 + qw - rb, qy0 + qh);
+    ctx.lineTo(qx0 + rb, qy0 + qh);
+    ctx.quadraticCurveTo(qx0, qy0 + qh, qx0, qy0 + qh - rb);
+    ctx.lineTo(qx0, qy0 + rb);
+    ctx.quadraticCurveTo(qx0, qy0, qx0 + rb, qy0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.drawImage(qr, qrX, qrY, qrSize, qrSize);
+    ctx.restore();
+  } catch {
+    ctx.strokeStyle = "rgba(200, 90, 100, 0.45)";
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(qrX, qrY, qrSize, qrSize);
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(154, 163, 181, 0.8)";
+    ctx.font = "16px 'Microsoft YaHei', sans-serif";
+    ctx.fillText("二维码", w / 2, qrY + qrSize * 0.5);
+  }
+
+  ctx.fillStyle = "rgba(255, 255, 255, 0.28)";
+  ctx.font = "16px 'Microsoft YaHei', sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("阿瓦隆角色人格测试", w / 2, h - 36);
 }

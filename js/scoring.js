@@ -1,3 +1,4 @@
+import { QUESTIONS } from "./questions.js";
 import { DIMENSIONS, ROLES, TIE_BREAK_ORDER } from "./roles.js";
 
 /** 空维度计数（每题对命中维度 +1，最高约 12+） */
@@ -62,16 +63,66 @@ export function matchRoles(counts) {
   };
 }
 
+/** 单题对某角色可贡献的加权分上界，累加为「该角色理论最高得分」 */
+function maxTheoreticalWeightedScoreForRole(role) {
+  let total = 0;
+  for (const q of QUESTIONS) {
+    let best = 0;
+    for (const opt of q.options) {
+      let delta = 0;
+      for (const k of opt.scores) {
+        delta += role.weights[k] ?? 0;
+      }
+      if (delta > best) best = delta;
+    }
+    total += best;
+  }
+  return total;
+}
+
 /**
- * 娱乐向「接近度」百分比：主角色在 55%–95% 区间，避免显得过于「科学」
+ * 与某角色气质的接近度 0–100：实际加权分 / 该角色在题面上可达的理论最高分
  */
-export function entertainmentMatchPercent(ranked) {
-  if (!ranked.length) return 70;
-  const scores = ranked.map((x) => x.score);
-  const maxS = Math.max(...scores);
-  const minS = Math.min(...scores);
-  const span = maxS - minS || 1;
-  const top = ranked[0].score;
-  const t = (top - minS) / span;
-  return Math.round(55 + t * 40);
+export function roleMatchPercent(counts, role) {
+  const actual = roleWeightedScore(counts, role.weights);
+  const cap = maxTheoreticalWeightedScoreForRole(role);
+  if (cap <= 0) return 0;
+  return Math.min(100, Math.round((100 * actual) / cap));
+}
+
+/**
+ * 将各维度题内计数转为 4 条 0–100 连续轴（偏右 = 更贴近右侧标签）
+ */
+export function profileAxesFromCounts(counts) {
+  const a = (x, y) => {
+    const s = (counts[x] ?? 0) + (counts[y] ?? 0);
+    if (s === 0) return 50;
+    return Math.round((100 * (counts[y] ?? 0)) / s);
+  };
+  return [
+    {
+      id: "reason",
+      leftLabel: "推理",
+      rightLabel: "直觉",
+      value: a("Logic", "Intuition"),
+    },
+    {
+      id: "presence",
+      leftLabel: "静观",
+      rightLabel: "积极",
+      value: a("Reserved", "Active"),
+    },
+    {
+      id: "stance",
+      leftLabel: "辅助",
+      rightLabel: "带队",
+      value: a("Support", "Lead"),
+    },
+    {
+      id: "style",
+      leftLabel: "直白",
+      rightLabel: "隐秘",
+      value: a("Direct", "Hidden"),
+    },
+  ];
 }
