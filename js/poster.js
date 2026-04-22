@@ -1,8 +1,12 @@
 /**
- * 分享图 Canvas：上半 — 立绘/名称/短文案/接近度；下半 — 网址 + 二维码
+ * 分享图 Canvas：上 — 立绘/名称/短文案/接近度；下 — 网址 + 二维码
+ * 高度随内容收束，避免底部大块留白。
  */
 
 const QR_PATH = "./pictures/QRcode.png";
+const POSTER_W = 750;
+/** 人格区与底部区分界线（像素），须大于上半区可能占据的最大 y */
+const DIVIDER_Y = 470;
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {
@@ -74,12 +78,23 @@ function drawWrappedLines(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
  */
 export async function drawPoster(canvas, role, extra = {}) {
   const matchPercent = extra.matchPercent ?? 0;
-  const w = canvas.width;
-  const h = canvas.height;
+  const w = POSTER_W;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  const halfY = h * 0.5;
+  const dividerY = DIVIDER_Y;
+  const yVisit = dividerY + 32;
+  const yDomain = yVisit + 36;
+  const qrY = yDomain + 32;
+  const pad = 6;
+  const qrSize = 160;
+  const qrBlockBottom = qrY + qrSize + pad * 2;
+  const footerY = qrBlockBottom + 28;
+  const h = Math.max(600, Math.ceil(footerY + 32));
+
+  canvas.width = w;
+  canvas.height = h;
+
   const g = ctx.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, "#1e1216");
   g.addColorStop(0.4, "#120a0c");
@@ -89,16 +104,16 @@ export async function drawPoster(canvas, role, extra = {}) {
 
   /* 下半区略深 */
   ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
-  ctx.fillRect(0, halfY, w, h - halfY);
+  ctx.fillRect(0, dividerY, w, h - dividerY);
 
   ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(0, halfY);
-  ctx.lineTo(w, halfY);
+  ctx.moveTo(0, dividerY);
+  ctx.lineTo(w, dividerY);
   ctx.stroke();
 
-  /* ——— 上半：人格信息（严格压在 halfY 之上留边距） ——— */
+  /* ——— 上：人格信息（在 dividerY 上方留边距） ——— */
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
 
@@ -153,29 +168,22 @@ export async function drawPoster(canvas, role, extra = {}) {
     drawWrappedLines(ctx, blurb, w / 2, blurbStart, w - 64, 30, 2);
   }
 
-  /* ——— 下半：网址 + 二维码 ——— */
-  let yb = halfY + 32;
-
+  /* ——— 下：网址 + 二维码 ——— */
   ctx.fillStyle = "rgba(200, 180, 160, 0.5)";
   ctx.font = "18px 'Microsoft YaHei', 'PingFang SC', sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("访问测试", w / 2, yb);
-  yb += 36;
+  ctx.fillText("访问测试", w / 2, yVisit);
 
   ctx.fillStyle = "#d4b86a";
   ctx.font = "28px 'Microsoft YaHei', 'PingFang SC', sans-serif";
-  ctx.fillText("avalontest.cn", w / 2, yb);
-  yb += 32;
+  ctx.fillText("avalontest.cn", w / 2, yDomain);
 
-  const qrSize = Math.min(160, (h - halfY) * 0.38);
   const qrX = w / 2 - qrSize / 2;
-  const qrY = yb;
 
   try {
     const qr = await loadImage(QR_PATH);
     ctx.save();
     ctx.fillStyle = "#fff";
-    const pad = 6;
     ctx.beginPath();
     const rb = 10;
     const qx0 = qrX - pad;
@@ -208,5 +216,5 @@ export async function drawPoster(canvas, role, extra = {}) {
   ctx.fillStyle = "rgba(255, 255, 255, 0.28)";
   ctx.font = "16px 'Microsoft YaHei', sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("阿瓦隆角色人格测试", w / 2, h - 36);
+  ctx.fillText("阿瓦隆角色人格测试", w / 2, footerY);
 }

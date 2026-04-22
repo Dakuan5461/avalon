@@ -323,12 +323,58 @@ document.getElementById("btn-native-share")?.addEventListener("click", async () 
 function downloadSharePng() {
   const canvas = el.sharePosterCanvas;
   if (!canvas || !lastMatch) return;
-  const name = lastMatch.primary?.name ?? "结果";
-  const link = document.createElement("a");
-  link.download = `阿瓦隆人格-${name}.png`;
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-  showToast("已保存");
+  const name = (lastMatch.primary?.name ?? "结果").replace(/[\\/:*?"<>|]/g, "_");
+  const filename = `阿瓦隆人格-${name}.png`;
+
+  const doneOk = () => showToast("已保存");
+  const doneFail = (detail) => {
+    console.error(detail);
+    showToast("无法保存图片。请用 HTTP 方式打开本页（勿用本机 file 直接打开）或使用截图", 4000);
+  };
+
+  const triggerDownload = (href) => {
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = filename;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  if (typeof canvas.toBlob === "function") {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          try {
+            triggerDownload(canvas.toDataURL("image/png", 1.0));
+            doneOk();
+          } catch (e) {
+            doneFail(e);
+          }
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        try {
+          triggerDownload(url);
+          doneOk();
+        } catch (e) {
+          doneFail(e);
+        } finally {
+          setTimeout(() => URL.revokeObjectURL(url), 1500);
+        }
+      },
+      "image/png",
+      1.0
+    );
+  } else {
+    try {
+      triggerDownload(canvas.toDataURL("image/png", 1.0));
+      doneOk();
+    } catch (e) {
+      doneFail(e);
+    }
+  }
 }
 
 document.getElementById("btn-download-share")?.addEventListener("click", () => {
