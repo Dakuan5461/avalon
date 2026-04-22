@@ -10,6 +10,9 @@ import {
 import { ROLES } from "./roles.js";
 import { drawPoster } from "./poster.js";
 
+/** 与海报、分享统一的测试入口 */
+const TEST_SITE_URL = "https://avalontest.cn/";
+
 const appRoot = document.getElementById("app");
 const btnQuit = document.getElementById("btn-quit");
 const elToast = document.getElementById("app-toast");
@@ -70,6 +73,63 @@ function showToast(msg, ms = 2200) {
   toastTimer = window.setTimeout(() => {
     elToast.hidden = true;
   }, ms);
+}
+
+/**
+ * 含「阿瓦隆人格测试」与网址，供页面展示/复制/系统分享共用。
+ * @param {{ name: string, shareShort?: string }} primary
+ */
+function buildFullShareText(primary) {
+  if (!primary) return "";
+  const short = (primary.shareShort || "").trim();
+  const lines = [`【阿瓦隆人格测试】我的结果：「${primary.name}」`];
+  if (short) lines.push(short);
+  lines.push(`来测一测：${TEST_SITE_URL}`);
+  return lines.join("\n");
+}
+
+/**
+ * 在「用户点击」的同步阶段执行，兼容 iOS/微信等环境下异步 clipboard 不可用的问题。
+ * @param {string} text
+ * @returns {boolean}
+ */
+function tryExecCommandCopy(text) {
+  if (!text) return false;
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "readonly");
+  ta.setAttribute("aria-hidden", "true");
+  Object.assign(ta.style, {
+    position: "fixed",
+    top: "0",
+    left: "0",
+    width: "2px",
+    height: "2px",
+    margin: "0",
+    padding: "0",
+    border: "none",
+    outline: "none",
+    boxShadow: "none",
+    background: "transparent",
+    opacity: "0",
+    fontSize: "16px",
+  });
+  document.body.appendChild(ta);
+  ta.focus();
+  if (ta.setSelectionRange) {
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+  } else {
+    ta.select();
+  }
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    /* 忽略 */
+  }
+  document.body.removeChild(ta);
+  return ok;
 }
 
 function openAtlas() {
@@ -212,7 +272,7 @@ async function finishQuiz() {
   el.resultBody.textContent = primary.body;
   fillList(el.resultPros, primary.pros);
   fillList(el.resultCons, primary.cons);
-  el.resultShare.textContent = primary.shareShort;
+  el.resultShare.textContent = buildFullShareText(primary);
   renderAxisList(profileAxesFromCounts(counts));
 
   if (el.resultPortrait) {
@@ -284,40 +344,88 @@ document.getElementById("btn-quiz-back")?.addEventListener("click", goQuizBack);
 
 function getSharePayload() {
   const p = lastMatch?.primary;
-  if (!p) return { title: "阿瓦隆角色人格", text: "" };
+  if (!p) {
+    return {
+      title: "阿瓦隆人格测试",
+      text: `来测一测：${TEST_SITE_URL}`,
+      url: TEST_SITE_URL,
+    };
+  }
   return {
     title: `我的阿瓦隆人格：${p.name}`,
-    text: p.shareShort,
+    text: buildFullShareText(p),
+    url: TEST_SITE_URL,
   };
 }
 
-document.getElementById("btn-copy-share")?.addEventListener("click", async () => {
+document.getElementById("btn-copy-share")?.addEventListener("click", () => {
   const t = el.resultShare?.textContent?.trim() ?? "";
   if (!t) return;
-  try {
-    await navigator.clipboard.writeText(t);
+  if (tryExecCommandCopy(t)) {
     showToast("已复制到剪贴板");
-  } catch {
-    showToast("复制失败，请长按文案手动复制");
+    return;
   }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard
+      .writeText(t)
+      .then(() => {
+        showToast("已复制到剪贴板");
+      })
+      .catch(() => {
+        showToast("无法自动复制，请长按上方灰色文案框，在系统菜单中点「复制」");
+      });
+    return;
+  }
+  showToast("请长按上方灰色文案框，在系统菜单中点「复制」");
 });
 
 document.getElementById("btn-native-share")?.addEventListener("click", async () => {
-  const { title, text } = getSharePayload();
+  const p = lastMatch?.primary;
+  if (!p) return;
+  const { title, text, url } = getSharePayload();
+
   if (navigator.share) {
     try {
-      await navigator.share({ title, text });
+      await navigator.share({ title, text, url });
       return;
     } catch (e) {
       if (e && e.name === "AbortError") return;
     }
   }
-  try {
-    await navigator.clipboard.writeText(`${title}\n\n${text}`.trim());
-    showToast("已复制（当前环境无法直接调起系统分享）");
-  } catch {
-    showToast("请使用复制按钮");
+
+  const canvas = el.sharePosterCanvas;
+  if (navigator.share && canvas && typeof canvas.toBlob === "function") {
+    const blob = await new Promise((resolve) => {
+      canvas.toBlob((b) => resolve(b), "image/png", 1.0);
+    });
+    if (blob) {
+      const safeName = String(p.name).replace(/[\\/:*?"<>|]/g, "_");
+      const file = new File([blob], `阿瓦隆人格-${safeName}.png`, { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ title, text, url, files: [file] });
+          return;
+        } catch (e) {
+          if (e && e.name === "AbortError") return;
+        }
+      }
+    }
   }
+
+  if (tryExecCommandCopy(text)) {
+    showToast("系统分享不可用，已复制到剪贴板");
+    return;
+  }
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      showToast("系统分享不可用，已复制到剪贴板");
+      return;
+    }
+  } catch {
+    /* 继续 */
+  }
+  showToast("无法调起分享。请点「复制文案」或截图分享");
 });
 
 function downloadSharePng() {
