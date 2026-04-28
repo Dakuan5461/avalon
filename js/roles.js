@@ -34,7 +34,7 @@ export const ROLES = [
     weights: {
       Logic: 3,
       Reserved: 2,
-      Hidden: 2,
+      Hidden: 1,
       Lead: 1,
       Intuition: 0,
       Active: 0,
@@ -98,9 +98,9 @@ export const ROLES = [
     portraitFile: "zhongchen.png",
     name: "忠臣",
     weights: {
-      Logic: 2,
-      Support: 3,
-      Direct: 3,
+      Logic: 1,
+      Support: 2,
+      Direct: 2,
       Lead: 1,
       Active: 1,
       Reserved: 1,
@@ -159,8 +159,8 @@ export const ROLES = [
     portraitFile: "moganna.png",
     name: "莫甘娜",
     weights: {
-      Hidden: 3,
-      Active: 2,
+      Hidden: 1,
+      Active: 1,
       Intuition: 2,
       Lead: 1,
       Logic: 0,
@@ -187,9 +187,9 @@ export const ROLES = [
     portraitFile: "cike.png",
     name: "刺客",
     weights: {
-      Active: 3,
+      Active: 2,
       Lead: 2,
-      Direct: 3,
+      Direct: 2,
       Logic: 1,
       Intuition: 1,
       Reserved: 0,
@@ -215,7 +215,7 @@ export const ROLES = [
     portraitFile: "modeleide.png",
     name: "莫德雷德",
     weights: {
-      Hidden: 3,
+      Hidden: 1,
       Reserved: 2,
       Logic: 2,
       Lead: 0,
@@ -244,7 +244,7 @@ export const ROLES = [
     name: "奥伯伦",
     weights: {
       Intuition: 3,
-      Hidden: 3,
+      Hidden: 2,
       Active: 1,
       Reserved: 1,
       Lead: 1,

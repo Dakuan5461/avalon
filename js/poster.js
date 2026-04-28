@@ -96,17 +96,17 @@ export async function drawPoster(canvas, role, extra = {}) {
   canvas.height = h;
 
   const g = ctx.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, "#1e1216");
-  g.addColorStop(0.4, "#120a0c");
-  g.addColorStop(1, "#080508");
+  g.addColorStop(0, "#1a1235");
+  g.addColorStop(0.42, "#120c24");
+  g.addColorStop(1, "#090613");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
 
   /* 下半区略深 */
-  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+  ctx.fillStyle = "rgba(0, 0, 0, 0.16)";
   ctx.fillRect(0, dividerY, w, h - dividerY);
 
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+  ctx.strokeStyle = "rgba(180, 162, 255, 0.24)";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(0, dividerY);
@@ -117,7 +117,7 @@ export async function drawPoster(canvas, role, extra = {}) {
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
 
-  ctx.fillStyle = "rgba(200, 180, 160, 0.75)";
+  ctx.fillStyle = "rgba(220, 206, 255, 0.8)";
   ctx.font = "22px 'Microsoft YaHei', 'PingFang SC', sans-serif";
   ctx.fillText("我的阿瓦隆人格", w / 2, 46);
 
@@ -146,35 +146,35 @@ export async function drawPoster(canvas, role, extra = {}) {
 
   ctx.textAlign = "center";
 
-  ctx.fillStyle = "#d4b86a";
+  ctx.fillStyle = "#ffd98f";
   ctx.font = "bold 44px 'Microsoft YaHei', 'PingFang SC', sans-serif";
   ctx.fillText(role.name, w / 2, 256);
 
-  ctx.fillStyle = "#a8a0a8";
+  ctx.fillStyle = "#b6afd9";
   ctx.font = "21px 'Microsoft YaHei', 'PingFang SC', sans-serif";
   const sub = (role.subtitle || "").replace(/。$/, "");
   let afterSub = drawWrappedLines(ctx, sub, w / 2, 288, w - 72, 28, 2);
 
   const matchY = Math.max(afterSub + 18, 352);
-  ctx.fillStyle = "rgba(200, 160, 100, 0.95)";
+  ctx.fillStyle = "rgba(255, 214, 139, 0.96)";
   ctx.font = "20px 'Microsoft YaHei', 'PingFang SC', sans-serif";
   ctx.fillText(`气质接近度 ${matchPercent}%`, w / 2, matchY);
 
   const blurbStart = matchY + 32;
   const blurb = (role.shareShort || "").trim().split("\n").join("");
-  ctx.fillStyle = "#9aa0a8";
+  ctx.fillStyle = "#a9b8e6";
   ctx.font = "19px 'Microsoft YaHei', 'PingFang SC', sans-serif";
   if (blurb) {
     drawWrappedLines(ctx, blurb, w / 2, blurbStart, w - 64, 30, 2);
   }
 
   /* ——— 下：网址 + 二维码 ——— */
-  ctx.fillStyle = "rgba(200, 180, 160, 0.5)";
+  ctx.fillStyle = "rgba(210, 200, 255, 0.62)";
   ctx.font = "18px 'Microsoft YaHei', 'PingFang SC', sans-serif";
   ctx.textAlign = "center";
   ctx.fillText("访问测试", w / 2, yVisit);
 
-  ctx.fillStyle = "#d4b86a";
+  ctx.fillStyle = "#ffd98f";
   ctx.font = "28px 'Microsoft YaHei', 'PingFang SC', sans-serif";
   ctx.fillText("avalontest.cn", w / 2, yDomain);
 
@@ -213,7 +213,7 @@ export async function drawPoster(canvas, role, extra = {}) {
     ctx.fillText("二维码", w / 2, qrY + qrSize * 0.5);
   }
 
-  ctx.fillStyle = "rgba(255, 255, 255, 0.28)";
+  ctx.fillStyle = "rgba(228, 222, 255, 0.46)";
   ctx.font = "16px 'Microsoft YaHei', sans-serif";
   ctx.textAlign = "center";
   ctx.fillText("阿瓦隆角色人格测试", w / 2, footerY);

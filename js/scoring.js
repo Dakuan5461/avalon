@@ -1,6 +1,21 @@
 import { QUESTIONS } from "./questions.js";
 import { DIMENSIONS, ROLES, TIE_BREAK_ORDER } from "./roles.js";
 
+/**
+ * 分布平衡偏置：只参与「主结果排序」的相似度微调，不改用户原始得分与接近度展示。
+ * 正值提高该角色入选概率，负值降低。
+ */
+const ROLE_BALANCE_BIAS = {
+  merlin: -0.08,
+  percival: 0.10,
+  loyal: 0.04,
+  arthur: 0.015,
+  morgana: -0.005,
+  assassin: -0.025,
+  mordred: -0.017,
+  oberon: -0.089,
+};
+
 /** 空维度累计分（各维度为各题选项加分之和） */
 export function emptyCounts() {
   const c = {};
@@ -40,6 +55,22 @@ function roleWeightedScore(counts, weights) {
   return s;
 }
 
+/** 方向相似度（0-1）：用于削弱“总分大就赢”的天然偏置 */
+function roleCosineSimilarity(counts, weights) {
+  let dot = 0;
+  let c2 = 0;
+  let w2 = 0;
+  for (const d of DIMENSIONS) {
+    const c = counts[d] ?? 0;
+    const w = weights[d] ?? 0;
+    dot += c * w;
+    c2 += c * c;
+    w2 += w * w;
+  }
+  if (c2 <= 0 || w2 <= 0) return 0;
+  return dot / Math.sqrt(c2 * w2);
+}
+
 function tieBreakRank(roleName) {
   const i = TIE_BREAK_ORDER.indexOf(roleName);
   return i === -1 ? 999 : i;
@@ -52,10 +83,18 @@ export function matchRoles(counts) {
   const scored = ROLES.map((role) => ({
     role,
     score: roleWeightedScore(counts, role.weights),
+    similarity: roleCosineSimilarity(counts, role.weights),
+    adjustedSimilarity: 0,
+    percent: roleMatchPercent(counts, role),
   }));
+  scored.forEach((x) => {
+    x.adjustedSimilarity = x.similarity + (ROLE_BALANCE_BIAS[x.role.id] ?? 0);
+  });
 
   scored.sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
+    if (b.adjustedSimilarity !== a.adjustedSimilarity) {
+      return b.adjustedSimilarity - a.adjustedSimilarity;
+    }
     return tieBreakRank(a.role.name) - tieBreakRank(b.role.name);
   });
 
