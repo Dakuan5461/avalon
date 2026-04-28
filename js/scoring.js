@@ -1,24 +1,33 @@
 import { QUESTIONS } from "./questions.js";
 import { DIMENSIONS, ROLES, TIE_BREAK_ORDER } from "./roles.js";
 
-/** 空维度计数（每题对命中维度 +1，最高约 12+） */
+/** 空维度累计分（各维度为各题选项加分之和） */
 export function emptyCounts() {
   const c = {};
   for (const d of DIMENSIONS) c[d] = 0;
   return c;
 }
 
-/** 将一次选择的维度计入总分 */
-export function addScores(counts, scoreKeys) {
-  for (const k of scoreKeys) {
-    if (counts[k] !== undefined) counts[k] += 1;
+/**
+ * 将一次选项的分值表累进总分。scores 形如 { Logic: 2, Reserved: 1 }，缺省维度视为不加。
+ * @param {Record<string, number>} delta
+ */
+export function addScores(counts, delta) {
+  for (const [d, pts] of Object.entries(delta)) {
+    if (counts[d] === undefined) continue;
+    const n = Number(pts);
+    if (!Number.isFinite(n)) continue;
+    counts[d] += n;
   }
 }
 
-/** 撤销上一题选择对应的维度分（用于「上一步」） */
-export function subtractScores(counts, scoreKeys) {
-  for (const k of scoreKeys) {
-    if (counts[k] !== undefined) counts[k] -= 1;
+/** 撤销一次选择（与 addScores 对称） */
+export function subtractScores(counts, delta) {
+  for (const [d, pts] of Object.entries(delta)) {
+    if (counts[d] === undefined) continue;
+    const n = Number(pts);
+    if (!Number.isFinite(n)) continue;
+    counts[d] -= n;
   }
 }
 
@@ -63,17 +72,21 @@ export function matchRoles(counts) {
   };
 }
 
-/** 单题对某角色可贡献的加权分上界，累加为「该角色理论最高得分」 */
+/** 单题对某角色可贡献的加权分上界：在该题四个选项中取最大，再累加 */
 function maxTheoreticalWeightedScoreForRole(role) {
   let total = 0;
   for (const q of QUESTIONS) {
     let best = 0;
     for (const opt of q.options) {
-      let delta = 0;
-      for (const k of opt.scores) {
-        delta += role.weights[k] ?? 0;
+      let contrib = 0;
+      const sm = opt.scores;
+      if (!sm || typeof sm !== "object") continue;
+      for (const [d, pts] of Object.entries(sm)) {
+        const w = role.weights[d] ?? 0;
+        const p = Number(pts);
+        if (Number.isFinite(p)) contrib += w * p;
       }
-      if (delta > best) best = delta;
+      if (contrib > best) best = contrib;
     }
     total += best;
   }

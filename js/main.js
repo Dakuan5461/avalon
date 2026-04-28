@@ -47,7 +47,7 @@ const el = {
 
 let counts = emptyCounts();
 let questionIndex = 0;
-/** 已作答题目的选项维度，长度等于当前题号（上一题及之前） */
+/** 已作答题目的 scores 分值表，长度等于当前题号（上一题及之前） */
 let answerTrail = [];
 let lastMatch = null;
 /** 结果页「复制文案」的完整内容（不展示在页面上） */
@@ -192,15 +192,15 @@ function renderQuestion() {
         b.disabled = true;
       });
       btn.classList.add("option-btn--selected");
-      setTimeout(() => onOption(opt.scores), 200);
+      setTimeout(() => onOption(opt.scores ?? {}), 200);
     });
     el.quizOptions.appendChild(btn);
   });
 }
 
-function onOption(scoreKeys) {
-  addScores(counts, scoreKeys);
-  answerTrail.push(scoreKeys);
+function onOption(scoreDelta) {
+  addScores(counts, scoreDelta);
+  answerTrail.push(scoreDelta);
   questionIndex += 1;
   if (questionIndex >= QUESTIONS.length) {
     finishQuiz();
